@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CC Fride - Card Wallet</title>
+    <style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg-body: #0f172a;
+    --container-bg: rgba(30, 41, 59, 0.7);
+    --text-main: #f8fafc;
+    --input-bg: #1e293b;
+    --accent: #8b5cf6;
+    --card-shadow: rgba(0,0,0,0.4);
+    --header-bg: rgba(15, 23, 42, 0.85);
+    --border-subtle: rgba(255,255,255,0.12);
+}
+
+[data-theme="light"] {
+    --bg-body: #f0f4ff;
+    --container-bg: rgba(255, 255, 255, 0.9);
+    --text-main: #1e293b;
+    --input-bg: #ffffff;
+    --card-shadow: rgba(0,0,0,0.15);
+    --header-bg: rgba(240, 244, 255, 0.85);
+    --border-subtle: rgba(0,0,0,0.08);
+}
+
+body {
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background-color 0.5s ease;
+    position: relative;
+}
+
+/* ===== SVG BACKGROUND ===== */
+.svg-bg {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.svg-bg svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* ===== HEADER ===== */
+.header {
+    width: 100%;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--header-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 10;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-brand img {
+    width: 150px;
+    height: auto;
+    border-radius: 0px;
+    object-fit: contain;
+}
+
+.header-brand span {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+/* ===== THEME TOGGLE ===== */
+.theme-toggle {
+    width: 62px;
+    height: 32px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #1e293b, #334155);
+    border: 2px solid rgba(255,255,255,0.15);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    padding: 0 3px;
+    outline: none;
+}
+
+[data-theme="light"] .theme-toggle {
+    background: linear-gradient(135deg, #93c5fd, #60a5fa);
+    border-color: rgba(255,255,255,0.4);
+}
+
+.toggle-ball {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(28px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+[data-theme="light"] .toggle-ball {
+    transform: translateX(0px);
+    background: #fbbf24;
+    box-shadow: 0 2px 8px rgba(251,191,36,0.4);
+}
+
+.toggle-ball svg {
+    width: 16px;
+    height: 16px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sun-icon { display: none; }
+.moon-icon { display: block; }
+
+[data-theme="light"] .sun-icon { display: block; }
+[data-theme="light"] .moon-icon { display: none; }
+
+/* ===== CARD TABS ===== */
+.card-tabs {
+    display: flex;
+    width: 100%;
+    max-width: 450px;
+    padding: 12px 20px 0 20px;
+    position: relative;
+    z-index: 1;
+    gap: 0;
+}
+
+.card-tab {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+    position: relative;
+    letter-spacing: 0.5px;
+}
+
+.card-tab.active {
+    opacity: 1;
+}
+
+.card-tab::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20%;
+    width: 60%;
+    height: 3px;
+    border-radius: 3px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-tab.active::after {
+    transform: scaleX(1);
+}
+
+/* ===== CARD LIST ===== */
+#card-list {
+    width: 100%;
+    max-width: 450px;
+    padding: 10px 20px 100px 20px;
+    position: relative;
+    z-index: 1;
+}
+
+/* ===== CARD FLIP CONTAINER ===== */
+.card-flip-container {
+    perspective: 1000px;
+    margin-bottom: 20px;
+    height: 210px;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-flip-container.visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.card-flip-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.card-flip-container.flipped .card-flip-inner {
+    transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    overflow: hidden;
+}
+
+/* ===== CARD FRONT (GLASS) ===== */
+.card-front {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Glass card unique color themes */
+.glass-visa {
+    background: linear-gradient(135deg,
+        rgba(30,58,138,0.65) 0%,
+        rgba(59,130,246,0.45) 50%,
+        rgba(147,197,253,0.35) 100%);
+    box-shadow: 0 8px 32px rgba(59,130,246,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.glass-mastercard {
+    background: linear-gradient(135deg,
+        rgba(194,65,12,0.65) 0%,
+        rgba(249,115,22,0.45) 50%,
+        rgba(253,186,116,0.35) 100%);
+    box-shadow: 0 8px 32px rgba(249,115,22,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.glass-rupay {
+    background: linear-gradient(135deg,
+        rgba(4,120,87,0.65) 0%,
+        rgba(16,185,129,0.45) 50%,
+        rgba(110,231,183,0.35) 100%);
+    box-shadow: 0 8px 32px rgba(16,185,129,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.glass-default {
+    background: linear-gradient(135deg,
+        rgba(109,40,217,0.65) 0%,
+        rgba(139,92,246,0.45) 50%,
+        rgba(196,181,253,0.35) 100%);
+    box-shadow: 0 8px 32px rgba(139,92,246,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+/* Extra card variants for uniqueness */
+.glass-visa-alt {
+    background: linear-gradient(135deg,
+        rgba(15,23,42,0.7) 0%,
+        rgba(51,65,85,0.5) 50%,
+        rgba(100,116,139,0.35) 100%);
+    box-shadow: 0 8px 32px rgba(51,65,85,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.glass-mastercard-alt {
+    background: linear-gradient(135deg,
+        rgba(190,18,60,0.65) 0%,
+        rgba(244,63,94,0.45) 50%,
+        rgba(253,164,175,0.35) 100%);
+    box-shadow: 0 8px 32px rgba(244,63,94,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.glass-rupay-alt {
+    background: linear-gradient(135deg,
+        rgba(14,116,144,0.65) 0%,
+        rgba(6,182,212,0.45) 50%,
+        rgba(103,232,249,0.35) 100%);
+    box-shadow: 0 8px 32px rgba(6,182,212,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.glass-default-alt {
+    background: linear-gradient(135deg,
+        rgba(219,39,119,0.65) 0%,
+        rgba(236,72,153,0.45) 50%,
+        rgba(249,168,212,0.35) 100%);
+    box-shadow: 0 8px 32px rgba(236,72,153,0.3),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.card-front::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.network-logo {
+    width: 50px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.network-logo svg {
+    height: 100%;
+    width: auto;
+}
+
+.card-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.bank-name {
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    font-size: 0.85rem;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.chip {
+    width: 42px;
+    height: 32px;
+    background: linear-gradient(135deg, #fde047, #ca8a04);
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+}
+
+.chip::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    right: 4px;
+    height: 1px;
+    background: rgba(0,0,0,0.2);
+    box-shadow: 0 4px 0 rgba(0,0,0,0.2), 0 -4px 0 rgba(0,0,0,0.2),
+                0 8px 0 rgba(0,0,0,0.15), 0 -8px 0 rgba(0,0,0,0.15);
+}
+
+.card-number {
+    font-size: 1.25rem;
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    user-select: none;
+    -webkit-user-select: none;
+    position: relative;
+}
+
+.card-bottom-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-size: 0.78rem;
+}
+
+.card-bottom-row small {
+    opacity: 0.7;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.close-icon {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0.6;
+    z-index: 5;
+    transition: opacity 0.2s;
+    line-height: 1;
+    background: rgba(0,0,0,0.3);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-icon:hover {
+    opacity: 1;
+}
+
+/* ===== CARD BACK ===== */
+.card-back {
+    transform: rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+    color: white;
+    border: 1px solid rgba(255,255,255,0.15);
+}
+
+/* Card back color variants matching front */
+.card-back.glass-visa {
+    background: linear-gradient(135deg,
+        rgba(20,48,120,0.85) 0%,
+        rgba(40,100,200,0.75) 50%,
+        rgba(100,160,230,0.65) 100%);
+}
+.card-back.glass-visa-alt {
+    background: linear-gradient(135deg,
+        rgba(10,18,35,0.85) 0%,
+        rgba(40,55,75,0.75) 50%,
+        rgba(80,96,119,0.65) 100%);
+}
+.card-back.glass-mastercard {
+    background: linear-gradient(135deg,
+        rgba(160,55,8,0.85) 0%,
+        rgba(210,95,18,0.75) 50%,
+        rgba(220,155,90,0.65) 100%);
+}
+.card-back.glass-mastercard-alt {
+    background: linear-gradient(135deg,
+        rgba(160,14,50,0.85) 0%,
+        rgba(210,50,78,0.75) 50%,
+        rgba(220,130,145,0.65) 100%);
+}
+.card-back.glass-rupay {
+    background: linear-gradient(135deg,
+        rgba(2,95,70,0.85) 0%,
+        rgba(12,150,105,0.75) 50%,
+        rgba(85,195,155,0.65) 100%);
+}
+.card-back.glass-rupay-alt {
+    background: linear-gradient(135deg,
+        rgba(10,95,120,0.85) 0%,
+        rgba(4,150,180,0.75) 50%,
+        rgba(80,195,215,0.65) 100%);
+}
+.card-back.glass-default {
+    background: linear-gradient(135deg,
+        rgba(85,30,185,0.85) 0%,
+        rgba(115,72,210,0.75) 50%,
+        rgba(165,150,220,0.65) 100%);
+}
+.card-back.glass-default-alt {
+    background: linear-gradient(135deg,
+        rgba(185,30,100,0.85) 0%,
+        rgba(200,58,130,0.75) 50%,
+        rgba(215,140,180,0.65) 100%);
+}
+
+.magnetic-stripe {
+    width: 100%;
+    height: 50px;
+    background: linear-gradient(180deg, #000 0%, #222 30%, #111 60%, #000 100%);
+    margin-top: 25px;
+    position: relative;
+}
+
+.magnetic-stripe::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.03) 2px,
+        rgba(255,255,255,0.03) 4px
+    );
+}
+
+.cvv-strip {
+    display: flex;
+    align-items: center;
+    margin: 20px 20px 0;
+    gap: 10px;
+}
+
+.cvv-signature {
+    flex: 1;
+    height: 36px;
+    background: repeating-linear-gradient(
+        90deg,
+        #e5e7eb,
+        #e5e7eb 1px,
+        #f3f4f6 1px,
+        #f3f4f6 3px
+    );
+    border-radius: 4px;
+}
+
+.cvv-box {
+    background: white;
+    color: #111;
+    padding: 8px 14px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 1rem;
+    letter-spacing: 2px;
+}
+
+.card-back-info {
+    padding: 15px 20px;
+    font-size: 0.6rem;
+    opacity: 0.4;
+    line-height: 1.5;
+    margin-top: auto;
+}
+
+.card-back .close-icon {
+    top: 12px;
+    right: 14px;
+    background: rgba(255,255,255,0.15);
+}
+
+/* ===== COPY TOAST ===== */
+.copy-toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(0,0,0,0.85);
+    color: white;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    z-index: 500;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    backdrop-filter: blur(10px);
+}
+
+.copy-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ===== FAB ===== */
+.fab {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    box-shadow: 0 8px 25px rgba(139,92,246,0.4);
+    cursor: pointer;
+    z-index: 100;
+    border: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.fab:active {
+    transform: scale(0.92);
+}
+
+/* ===== MODAL ===== */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    background: var(--container-bg);
+    width: 90%;
+    max-width: 400px;
+    padding: 25px;
+    border-radius: 24px;
+    position: relative;
+    border: 1px solid var(--border-subtle);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.modal-content input, .modal-content select {
+    width: 100%;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
+form { display: grid; gap: 12px; }
+
+input, select {
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    background: var(--input-bg);
+    color: var(--text-main);
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input:focus, select:focus {
+    border-color: var(--accent);
+}
+
+input.invalid, select.invalid {
+    border-color: #ef4444;
+    animation: shake 0.3s ease;
+}
+
+.field-error {
+    color: #ef4444;
+    font-size: 0.72rem;
+    margin-top: -6px;
+    display: none;
+}
+
+.field-error.visible {
+    display: block;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+.add-btn {
+    background: var(--accent);
+    color: white;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.add-btn:active {
+    opacity: 0.85;
+}
+
+.empty-state {
+    text-align: center;
+    margin-top: 60px;
+    opacity: 0.4;
+    font-size: 0.95rem;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 0; }
+    </style>
+</head>
+<body>
+
+<!-- SVG Colorful Background -->
+<div class="svg-bg" id="svg-bg"></div>
+
+<!-- Header -->
+<div class="header">
+    <div class="header-brand">
+        <img src="cardvalut.png" alt="Card Vault">
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <div class="toggle-ball">
+            <!-- Sun SVG -->
+            <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+            <!-- Moon SVG -->
+            <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+        </div>
+    </button>
+</div>
+
+<!-- Card Tabs -->
+<div class="card-tabs">
+    <button class="card-tab active" onclick="switchTab('credit')" id="tab-credit">Credit Cards</button>
+    <button class="card-tab" onclick="switchTab('debit')" id="tab-debit">Debit Cards</button>
+</div>
+
+<!-- Card List -->
+<div id="card-list"></div>
+
+<!-- FAB -->
+<button class="fab" onclick="openModal()">+</button>
+
+<!-- Copy toast -->
+<div class="copy-toast" id="copy-toast">Card number copied!</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+    <div class="modal-content">
+        <span style="position:absolute; top:15px; right:20px; cursor:pointer; font-size:24px; opacity:0.6;" onclick="closeModal()">&times;</span>
+        <h3>Add New Card</h3>
+        <form id="card-form" novalidate>
+            <select id="cardType" required>
+                <option value="">Card Type</option>
+                <option value="credit">Credit Card</option>
+                <option value="debit">Debit Card</option>
+            </select>
+            <div class="field-error" id="err-cardType">Please select a card type</div>
+            <input type="text" id="bank" placeholder="Bank Name" required>
+            <div class="field-error" id="err-bank">Bank name is required</div>
+            <input type="text" id="holder" placeholder="Card Holder Name" required>
+            <div class="field-error" id="err-holder">Card holder name is required (letters only)</div>
+            <input type="text" id="number" placeholder="Card Number" maxlength="19" required>
+            <div class="field-error" id="err-number">Enter a valid 16-digit card number</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <input type="text" id="expiry" placeholder="MM/YY" maxlength="5" required>
+                <input type="text" id="cvv" placeholder="CVV" maxlength="4" required>
+                <select id="network" required>
+                    <option value="">Network</option>
+                    <option value="visa">Visa</option>
+                    <option value="mastercard">Master</option>
+                    <option value="rupay">Rupay</option>
+                </select>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                <div class="field-error" id="err-expiry">Invalid MM/YY</div>
+                <div class="field-error" id="err-cvv">3-4 digits</div>
+                <div class="field-error" id="err-network">Select network</div>
+            </div>
+            <button type="submit" class="add-btn">Add to Wallet</button>
+        </form>
+    </div>
+</div>
+
+<script>
+// ===== SVG BACKGROUND =====
+function renderSvgBg() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    const svgBg = document.getElementById('svg-bg');
+    if (isLight) {
+        svgBg.innerHTML = `
+        <svg viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="g1" cx="20%" cy="20%" r="50%">
+                    <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <radialGradient id="g2" cx="80%" cy="30%" r="45%">
+                    <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.25"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <radialGradient id="g3" cx="50%" cy="80%" r="50%">
+                    <stop offset="0%" stop-color="#f472b6" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <radialGradient id="g4" cx="10%" cy="70%" r="40%">
+                    <stop offset="0%" stop-color="#34d399" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <radialGradient id="g5" cx="90%" cy="80%" r="35%">
+                    <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+            </defs>
+            <rect width="800" height="600" fill="#f0f4ff"/>
+            <ellipse cx="160" cy="120" rx="300" ry="250" fill="url(#g1)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;20,15;0,0" dur="12s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="640" cy="180" rx="280" ry="220" fill="url(#g2)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;-15,20;0,0" dur="15s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="400" cy="480" rx="320" ry="200" fill="url(#g3)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;25,-10;0,0" dur="18s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="80" cy="420" rx="250" ry="200" fill="url(#g4)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;10,20;0,0" dur="14s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="720" cy="480" rx="200" ry="180" fill="url(#g5)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;-20,10;0,0" dur="16s" repeatCount="indefinite"/>
+            </ellipse>
+        </svg>`;
+    } else {
+        svgBg.innerHTML = `
+        <svg viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <radialGradient id="d1" cx="25%" cy="25%" r="50%">
+                    <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.35"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <radialGradient id="d2" cx="75%" cy="20%" r="45%">
+                    <stop offset="0%" stop-color="#2563eb" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <radialGradient id="d3" cx="50%" cy="75%" r="50%">
+                    <stop offset="0%" stop-color="#ec4899" stop-opacity="0.25"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <radialGradient id="d4" cx="15%" cy="65%" r="40%">
+                    <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.25"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+                <radialGradient id="d5" cx="85%" cy="70%" r="35%">
+                    <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.2"/>
+                    <stop offset="100%" stop-color="transparent"/>
+                </radialGradient>
+            </defs>
+            <rect width="800" height="600" fill="#0f172a"/>
+            <ellipse cx="200" cy="150" rx="300" ry="250" fill="url(#d1)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;20,15;0,0" dur="12s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="600" cy="120" rx="280" ry="220" fill="url(#d2)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;-15,20;0,0" dur="15s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="400" cy="450" rx="320" ry="200" fill="url(#d3)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;25,-10;0,0" dur="18s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="100" cy="400" rx="250" ry="200" fill="url(#d4)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;10,20;0,0" dur="14s" repeatCount="indefinite"/>
+            </ellipse>
+            <ellipse cx="700" cy="500" rx="200" ry="180" fill="url(#d5)">
+                <animateTransform attributeName="transform" type="translate" values="0,0;-20,10;0,0" dur="16s" repeatCount="indefinite"/>
+            </ellipse>
+        </svg>`;
+    }
+}
+
+// ===== PAYMENT NETWORK SVG LOGOS =====
+const networkLogos = {
+    visa: `<svg viewBox="0 0 780 500" xmlns="http://www.w3.org/2000/svg" width="50" height="32">
+        <path d="M293.2 348.7l33.4-195.8h53.4l-33.4 195.8zM524.8 156.6c-10.6-4-27.2-8.3-47.9-8.3-52.8 0-90 26.6-90.2 64.7-.3 28.2 26.5 43.9 46.8 53.3 20.8 9.6 27.8 15.8 27.7 24.4-.1 13.2-16.6 19.2-32 19.2-21.4 0-32.7-3-50.3-10.2l-6.9-3.1-7.5 44c12.5 5.5 35.6 10.2 59.5 10.5 56.2 0 92.6-26.3 93-66.8.2-22.3-14-39.2-44.6-53.2-18.6-9.1-30-15.1-29.8-24.3 0-8.1 9.6-16.8 30.4-16.8 17.4-.3 29.9 3.5 39.7 7.5l4.8 2.2 7.3-43.1zM661.6 152.9h-41.3c-12.8 0-22.4 3.5-28 16.3l-79.4 179.5h56.2s9.2-24.2 11.3-29.5c6.1 0 60.9.1 68.7.1 1.6 6.9 6.5 29.4 6.5 29.4h49.7l-43.7-195.8zm-66.2 126.5c4.4-11.3 21.5-55 21.5-55-.3.5 4.4-11.4 7.1-18.8l3.6 17s10.3 47.2 12.5 56.8h-44.7zM232.8 152.9L180.5 289l-5.6-27.1c-9.7-31.2-39.9-65-73.7-81.9l47.9 168.5h56.6l84.2-195.8h-56.1z" fill="white"/>
+        <path d="M131.3 152.9H45l-.7 3.5c67.1 16.3 111.5 55.5 130 102.7L155.6 169c-3.3-12.6-12.8-16-24.3-16.1z" fill="rgba(255,255,255,0.7)"/>
+    </svg>`,
+    mastercard: `<svg viewBox="0 0 780 500" xmlns="http://www.w3.org/2000/svg" width="50" height="32">
+        <circle cx="330" cy="250" r="150" fill="rgba(235,0,27,0.9)"/>
+        <circle cx="450" cy="250" r="150" fill="rgba(255,159,0,0.9)"/>
+        <path d="M390 130.7c-35.3 28.5-57.9 72.1-57.9 121.3s22.6 92.8 57.9 121.3c35.3-28.5 57.9-72.1 57.9-121.3s-22.6-92.8-57.9-121.3z" fill="rgba(255,95,0,0.9)"/>
+    </svg>`,
+    rupay: `<svg viewBox="0 0 780 500" xmlns="http://www.w3.org/2000/svg" width="50" height="32">
+        <defs>
+            <linearGradient id="rupayGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#097A44"/>
+                <stop offset="50%" stop-color="#F37021"/>
+                <stop offset="100%" stop-color="#1A4F9E"/>
+            </linearGradient>
+        </defs>
+        <text x="390" y="290" font-family="Arial,sans-serif" font-weight="900" font-size="180" fill="url(#rupayGrad)" text-anchor="middle" letter-spacing="-5">RuPay</text>
+    </svg>`,
+    default: `<svg viewBox="0 0 50 32" xmlns="http://www.w3.org/2000/svg" width="50" height="32">
+        <rect x="4" y="4" width="42" height="24" rx="4" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+        <circle cx="20" cy="16" r="6" fill="rgba(255,255,255,0.3)"/>
+        <circle cx="30" cy="16" r="6" fill="rgba(255,255,255,0.3)"/>
+    </svg>`
+};
+
+// ===== GLASS COLOR VARIANTS =====
+const glassVariants = {
+    visa: ['glass-visa', 'glass-visa-alt'],
+    mastercard: ['glass-mastercard', 'glass-mastercard-alt'],
+    rupay: ['glass-rupay', 'glass-rupay-alt'],
+    default: ['glass-default', 'glass-default-alt']
+};
+
+let networkCounts = {};
+
+function getGlassClass(network, cardId) {
+    const variants = glassVariants[network] || glassVariants.default;
+    return variants[cardId % variants.length];
+}
+
+// ===== DOM REFERENCES =====
+const modal = document.getElementById('modal');
+const cardForm = document.getElementById('card-form');
+const cardList = document.getElementById('card-list');
+const copyToast = document.getElementById('copy-toast');
+
+let cards = JSON.parse(localStorage.getItem('walletCards')) || [];
+// Migrate old cards without cardType - default to credit
+cards.forEach(c => { if (!c.cardType) c.cardType = 'credit'; });
+let activeTab = 'credit';
+
+function openModal() { modal.style.display = 'flex'; }
+function closeModal() {
+    modal.style.display = 'none';
+    clearValidation();
+}
+
+// ===== TAB SWITCHING =====
+function switchTab(tab) {
+    activeTab = tab;
+    document.getElementById('tab-credit').classList.toggle('active', tab === 'credit');
+    document.getElementById('tab-debit').classList.toggle('active', tab === 'debit');
+    render();
+}
+
+// ===== THEME TOGGLE =====
+function toggleTheme() {
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    document.documentElement.setAttribute('data-theme', isLight ? 'dark' : 'light');
+    localStorage.setItem('walletTheme', isLight ? 'dark' : 'light');
+    renderSvgBg();
+}
+
+// Restore saved theme
+(function() {
+    const saved = localStorage.getItem('walletTheme');
+    if (saved) document.documentElement.setAttribute('data-theme', saved);
+    renderSvgBg();
+})();
+
+// ===== CARD NUMBER AUTO-FORMAT & NETWORK DETECT =====
+document.getElementById('number').addEventListener('input', (e) => {
+    let val = e.target.value.replace(/\D/g, '');
+    e.target.value = val.replace(/(.{4})/g, '$1 ').trim();
+    const networkSelect = document.getElementById('network');
+    if (val.startsWith('4')) networkSelect.value = 'visa';
+    else if (val.startsWith('5')) networkSelect.value = 'mastercard';
+    else if (val.startsWith('6')) networkSelect.value = 'rupay';
+});
+
+// ===== EXPIRY AUTO-SLASH =====
+document.getElementById('expiry').addEventListener('input', (e) => {
+    let val = e.target.value.replace(/[^\d]/g, '');
+    if (val.length > 4) val = val.substring(0, 4);
+    if (val.length >= 3) {
+        val = val.substring(0, 2) + '/' + val.substring(2);
+    }
+    e.target.value = val;
+});
+
+document.getElementById('expiry').addEventListener('keydown', (e) => {
+    const val = e.target.value;
+    // Allow backspace to delete the slash naturally
+    if (e.key === 'Backspace' && val.length === 3 && val[2] === '/') {
+        e.target.value = val.substring(0, 1);
+        e.preventDefault();
+    }
+});
+
+// ===== CVV - digits only =====
+document.getElementById('cvv').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/\D/g, '');
+});
+
+// ===== HOLDER - letters and spaces only =====
+document.getElementById('holder').addEventListener('input', (e) => {
+    e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+});
+
+// ===== FORM VALIDATION =====
+function clearValidation() {
+    document.querySelectorAll('.invalid').forEach(el => el.classList.remove('invalid'));
+    document.querySelectorAll('.field-error').forEach(el => el.classList.remove('visible'));
+}
+
+function showError(fieldId) {
+    const field = document.getElementById(fieldId);
+    const errEl = document.getElementById('err-' + fieldId);
+    if (field) field.classList.add('invalid');
+    if (errEl) errEl.classList.add('visible');
+}
+
+function validateForm() {
+    clearValidation();
+    let valid = true;
+
+    const cardType = document.getElementById('cardType').value;
+    const bank = document.getElementById('bank').value.trim();
+    const holder = document.getElementById('holder').value.trim();
+    const number = document.getElementById('number').value.replace(/\s/g, '');
+    const expiry = document.getElementById('expiry').value;
+    const cvv = document.getElementById('cvv').value;
+    const network = document.getElementById('network').value;
+
+    if (!cardType) { showError('cardType'); valid = false; }
+    if (!bank) { showError('bank'); valid = false; }
+    if (!holder || !/^[a-zA-Z\s]{2,}$/.test(holder)) { showError('holder'); valid = false; }
+    if (!/^\d{13,19}$/.test(number)) { showError('number'); valid = false; }
+    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(expiry)) { showError('expiry'); valid = false; }
+    if (!/^\d{3,4}$/.test(cvv)) { showError('cvv'); valid = false; }
+    if (!network) { showError('network'); valid = false; }
+
+    return valid;
+}
+
+// ===== FORM SUBMIT =====
+cardForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    const newCard = {
+        id: Date.now(),
+        cardType: document.getElementById('cardType').value,
+        bank: document.getElementById('bank').value,
+        holder: document.getElementById('holder').value,
+        number: document.getElementById('number').value,
+        expiry: document.getElementById('expiry').value,
+        cvv: document.getElementById('cvv').value,
+        network: document.getElementById('network').value
+    };
+    cards.push(newCard);
+    localStorage.setItem('walletCards', JSON.stringify(cards));
+    // Switch to the tab matching the card type just added
+    activeTab = newCard.cardType;
+    document.getElementById('tab-credit').classList.toggle('active', activeTab === 'credit');
+    document.getElementById('tab-debit').classList.toggle('active', activeTab === 'debit');
+    render();
+    cardForm.reset();
+    closeModal();
+});
+
+// ===== DELETE CARD =====
+function deleteCard(id, event) {
+    event.stopPropagation();
+    if (confirm("Delete this card?")) {
+        cards = cards.filter(c => c.id !== id);
+        localStorage.setItem('walletCards', JSON.stringify(cards));
+        render();
+    }
+}
+
+// ===== FLIP CARD =====
+function flipCard(container, event) {
+    if (event.target.closest('.close-icon')) return;
+    container.classList.toggle('flipped');
+}
+
+// ===== LONG PRESS TO COPY =====
+let longPressTimer = null;
+
+function startLongPress(cardNumber) {
+    longPressTimer = setTimeout(() => {
+        const num = cardNumber.replace(/\s/g, '');
+        navigator.clipboard.writeText(num).then(() => {
+            showCopyToast();
+        }).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = num;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showCopyToast();
+        });
+    }, 600);
+}
+
+function cancelLongPress() {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+}
+
+function showCopyToast() {
+    copyToast.classList.add('show');
+    setTimeout(() => copyToast.classList.remove('show'), 2000);
+}
+
+// ===== SCROLL REVEAL (IntersectionObserver) =====
+const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+            setTimeout(() => {
+                entry.target.classList.add('visible');
+            }, i * 80);
+            observer.unobserve(entry.target);
+        }
+    });
+}, { threshold: 0.1 });
+
+// ===== RENDER =====
+function render() {
+    const filtered = cards.filter(c => c.cardType === activeTab);
+
+    cardList.innerHTML = filtered.length === 0
+        ? '<div class="empty-state">No ' + activeTab + ' cards yet. Tap + to add one.</div>'
+        : '';
+
+    networkCounts = {};
+
+    filtered.forEach((card, index) => {
+        if (!networkCounts[card.network]) networkCounts[card.network] = 0;
+        const variantIndex = networkCounts[card.network];
+        networkCounts[card.network]++;
+
+        const glassClass = getGlassClass(card.network, variantIndex);
+        const logo = networkLogos[card.network] || networkLogos.default;
+
+        const container = document.createElement('div');
+        container.className = 'card-flip-container';
+        container.onclick = function(e) { flipCard(this, e); };
+
+        container.innerHTML = `
+            <div class="card-flip-inner">
+                <!-- FRONT -->
+                <div class="card-front ${glassClass}">
+                    <div class="card-top-row">
+                        <div class="network-logo">${logo}</div>
+                        <div class="bank-name">${card.bank.toUpperCase()}</div>
+                    </div>
+                    <div class="chip"></div>
+                    <div class="card-number"
+                         onmousedown="startLongPress('${card.number}')"
+                         onmouseup="cancelLongPress()"
+                         onmouseleave="cancelLongPress()"
+                         ontouchstart="startLongPress('${card.number}')"
+                         ontouchend="cancelLongPress()"
+                         ontouchcancel="cancelLongPress()">
+                        ${card.number}
+                    </div>
+                    <div class="card-bottom-row">
+                        <div><small>HOLDER</small><br><strong>${card.holder.toUpperCase()}</strong></div>
+                        <div style="text-align:right"><small>EXPIRES</small><br><strong>${card.expiry}</strong></div>
+                    </div>
+                </div>
+                <!-- BACK -->
+                <div class="card-back ${glassClass}">
+                    <div class="magnetic-stripe"></div>
+                    <div class="cvv-strip">
+                        <div class="cvv-signature"></div>
+                        <div class="cvv-box">${card.cvv}</div>
+                    </div>
+                    <div class="card-back-info">
+                        This card is the property of the issuing bank.<br>
+                        If found, please return to any branch.
+                    </div>
+                    <span class="close-icon" onclick="deleteCard(${card.id}, event)">&times;</span>
+                </div>
+            </div>
+        `;
+
+        cardList.appendChild(container);
+        observer.observe(container);
+
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                container.classList.add('visible');
+            }, index * 100);
+        });
+    });
+}
+
+render();
+</script>
+</body>
+</html>
